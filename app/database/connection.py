@@ -2,12 +2,10 @@ from flask import Flask
 from dotenv import load_dotenv
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
+from loguru import logger
 import os
-import logging
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("DB_Connection")
+db_logger = logger.bind(name="DB_CONNECTION")
 
 def init_db(app: Flask) -> MongoClient:
     """
@@ -42,7 +40,7 @@ def init_db(app: Flask) -> MongoClient:
         
         
     except Exception as e:
-        logger.error(f"Error loading environment variables: {e}")
+        db_logger.error(f"Error loading environment variables: {e}")
         raise
     
     URI = _build_connection_uri(CONNECTION, USER, PASSWORD)
@@ -60,14 +58,14 @@ def init_db(app: Flask) -> MongoClient:
         
         app.config["MONGO_CLIENT"] = MONGO_CLIENT
         
-        logger.info(f"Successfully connected to MongoDB ({CONNECTION} mode)")
+        db_logger.success(f"Successfully connected to MongoDB ({CONNECTION} mode)")
         return MONGO_CLIENT
 
     except (ConnectionFailure, ServerSelectionTimeoutError) as e:
-        logger.error(f"Failed to connect to MongoDB: {e}")
+        db_logger.error(f"Failed to connect to MongoDB: {e}")
         raise ConnectionFailure(f"Cannot connect to MongoDB database: {e}")
     except Exception as e:
-        logger.error(f"Unexpected error during database initialization: {e}")
+        db_logger.error(f"Unexpected error during database initialization: {e}")
         raise
     
 def _build_connection_uri(connection_type: str, user: str | None = None, password: str | None = None) -> str:
@@ -109,8 +107,7 @@ def _test_connection(client: MongoClient) -> None:
     try:
         # Tries to ping the server
         client.admin.command('ping')
-        logger.info("MongoDB connection test successful")
+        db_logger.info("MongoDB connection test successful")
     except Exception as e:
-        logger.error(f"MongoDB connection test failed: {e}")
+        db_logger.error(f"MongoDB connection test failed: {e}")
         raise ConnectionFailure(f"Connection test failed: {e}")
-        

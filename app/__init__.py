@@ -1,18 +1,40 @@
 from flask import Flask
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
-import logging
-from app.database.connection import init_db
+from loguru import logger
 
-logger = logging.getLogger(__name__)
+from app.database.connection import init_db
+from app.utils.db import save_db_for_utils
+from app.utils.logger import setup_logger
+
+setup_logger()
+app_logger = logger.bind(name="app")
 
 def app_init() -> Flask:
+    """
+    Initialize Flask application with database connection
+    
+    Returns:
+        Flask: Configured Flask application
+        
+    Raises:
+        ConnectionFailure: If database connection fails
+        ValueError: If configuration is invalid
+    """
+    app_logger.info("Starting Flask application initialization...")
+    
     app = Flask(__name__)
     
     try:
+        app_logger.info("Initializing database connection...")
         mongo_client: MongoClient = init_db(app)
+        save_db_for_utils(mongo_client)
     except (ConnectionFailure, ValueError) as e:
-        logger.error(f"Failed to initialize database: {e}")
+        app_logger.error(f"Failed to initialize database: {e}")
+        raise
+    except Exception as e:
+        app_logger.critical(f"Unexpected error during app initialization: {e}")
         raise
     
+    app_logger.success("Flask application initialized successfully")
     return app
