@@ -6,6 +6,7 @@ from loguru import logger
 from app.database.connection import init_db
 from app.utils.db import save_db_for_utils
 from app.utils.logger import setup_logger
+from app.routes import index
 
 setup_logger()
 app_logger = logger.bind(name="app")
@@ -29,12 +30,15 @@ def app_init() -> Flask:
         app_logger.info("Initializing database connection...")
         mongo_client: MongoClient = init_db(app)
         save_db_for_utils(mongo_client)
+        
+        app.register_blueprint(index.bp)
     except (ConnectionFailure, ValueError) as e:
         app_logger.error(f"Failed to initialize database: {e}")
         raise
     except Exception as e:
         app_logger.critical(f"Unexpected error during app initialization: {e}")
         raise
+    
     
     app_logger.success("Flask application initialized successfully")
     return app
